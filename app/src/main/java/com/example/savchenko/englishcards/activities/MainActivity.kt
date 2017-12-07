@@ -6,10 +6,7 @@ import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import android.view.View
-import android.widget.AdapterView
-import android.widget.LinearLayout
-import android.widget.TextView
-import android.widget.Toast
+import android.widget.*
 import com.example.savchenko.englishcards.R
 import com.example.savchenko.englishcards.adapters.VerbsAdapter
 import com.example.savchenko.englishcards.storage.Const.PRESENT_CONTINUOUS_STR
@@ -17,22 +14,27 @@ import com.example.savchenko.englishcards.storage.Const.PRESENT_SIMPLE_STR
 import com.example.savchenko.englishcards.entities.Verb
 import com.example.savchenko.englishcards.storage.Const
 import kotlinx.android.synthetic.main.activity_main.*
+import android.widget.FrameLayout
+
+
 
 
 class MainActivity : AppCompatActivity() {
-    val TAG = this.javaClass.simpleName
+    private val TAG = this.javaClass.simpleName
     private val listStrings = mutableListOf(
             Verb(1, "work", "Where do you usually work", "Where are you working now"),
             Verb(2, "teach", "How long do you teach", "What are you teaching now"),
-            Verb(3, "learn", "", ""),
-            Verb(4, "hear", "", ""),
-            Verb(5, "know", "", ""),
-            Verb(6, "mean", "", ""),
-            Verb(7, "have", "", ""),
-            Verb(8, "do", "", ""),
-            Verb(9, "make", "", ""))
-    private val adapter = VerbsAdapter(this, listStrings)
+            Verb(3, "learn", "How do you learn per day", "What are you learning now"),
+            Verb(4, "hear", "What do you usually hear at street", "Are you hearing"),
+            Verb(5, "draw", "How do you draw this", "Are you drawing since yesterday"),
+            Verb(6, "cook", "What do you usually cook", "Are you cooking"),
+            Verb(7, "have", "What dinner you always have", "Are you having free time"),
+            Verb(8, "do", "How do you do it", "What are you doing"),
+            Verb(9, "make", "Do you make chairs", "Are you making people good"))
+    private val verbsAdapter = VerbsAdapter(this, listStrings)
     private var position = 0
+    private var isCurrent = true
+    private lateinit var verb:Verb
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -40,15 +42,17 @@ class MainActivity : AppCompatActivity() {
 
         tvWhoTurn.text = "X"
 
-        gvVerbs.adapter = adapter
-        btnReady.setOnClickListener({onBtnClick(position)})
+        gvVerbs.adapter = verbsAdapter
+        btnReady.setOnClickListener({ onReadyClick(position)})
 
         gvVerbs.setOnItemClickListener { _: AdapterView<*>, _: View, i: Int, _: Long ->
             if (listStrings[i].verb != "X" && listStrings[i].verb != "O") {
                 position = i
-                llTextViews.removeAllViews()
-                fillTextViews(listStrings.get(i))
-                tvTime.text = getRandomTime()
+                glTextViews.removeAllViews()
+                this.verb = listStrings[i]
+                fillTextViews()
+                tvTimeName.text = getRandomTime()
+                isCurrent = true
             }
         }
     }
@@ -56,39 +60,67 @@ class MainActivity : AppCompatActivity() {
     private fun getRandomTime():String{
         val randomNumber = (Math.random() * 2).toInt()
         Log.i(TAG, randomNumber.toString())
-        if(randomNumber== Const.PRESENT_CONTINUOUS)
-            return PRESENT_CONTINUOUS_STR
-        else return PRESENT_SIMPLE_STR
+        return if(randomNumber== Const.PRESENT_CONTINUOUS)
+            PRESENT_CONTINUOUS_STR
+        else PRESENT_SIMPLE_STR
     }
 
-    private fun onBtnClick(position:Int){
-        tvPhrase.text = ""
+    private fun onReadyClick(position:Int){
         val currentVerb = listStrings[position]
-        listStrings[position] = Verb(currentVerb.id, tvWhoTurn.text.toString(), currentVerb.presentSimple, currentVerb.presentContinuous)
-        adapter.notifyDataSetChanged()
-        gvVerbs.adapter = adapter
+        if(isCurrent && checkPhrase()) {
+
+            listStrings[position] = Verb(currentVerb.id, tvWhoTurn.text.toString(), currentVerb.presentSimple, currentVerb.presentContinuous)
+            verbsAdapter.notifyDataSetChanged()
+            gvVerbs.adapter = verbsAdapter
+            allCombines()
+        }else {
+            toast("Неверно!")
+        }
+        tvPhrase.text = ""
+        glTextViews.removeAllViews()
         setWhoTurnText()
-        allCombines()
     }
 
-    private fun fillTextViews(verb:Verb){
+    private fun fillTextViews(){
         val allWords = verb.presentContinuous + " " + verb.presentSimple
         val words = allWords.toLowerCase().split(" ")
-        val llp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT)
-        llp.setMargins(8, 0, 8, 0)
+        val llp = FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT)
+        llp.setMargins(4, 4, 4, 4)
 
-        for (i in 1 until words.size){
+        for (i in 0 until words.size){
             val tvItem = TextView(this)
-            tvItem.text = words.get(i) + " "
+            tvItem.text = words[i].plus(" ")
             tvItem.setBackgroundResource(R.color.colorPrimary)
             tvItem.setTextColor(Color.parseColor("#ffffff"))
             tvItem.layoutParams = llp
             tvItem.setPadding(8, 8, 8, 8)
             tvItem.setOnClickListener {
-                tvItem.visibility = View.INVISIBLE
-                tvPhrase.text = tvPhrase.text.toString() + tvItem.text.toString()
+                val containsStr = tvPhrase.text.toString() + tvItem.text.toString().toLowerCase().trim()
+                if(tvTimeName.text == PRESENT_CONTINUOUS_STR) {
+                    checkTimeContainsWords(verb.presentContinuous, tvItem, containsStr)
+                }else if(tvTimeName.text == PRESENT_SIMPLE_STR){
+                    checkTimeContainsWords(verb.presentSimple, tvItem, containsStr)
+                }
             }
-            llTextViews.addView(tvItem)
+            glTextViews.addView(tvItem)
+        }
+    }
+
+    private fun checkPhrase() :Boolean{
+        return if(tvTimeName.text == PRESENT_CONTINUOUS_STR) {
+            tvPhrase.text.toString().toLowerCase().trim() == verb.presentContinuous.toLowerCase().trim()
+        }else {
+            tvPhrase.text.toString().toLowerCase().trim() == verb.presentSimple.toLowerCase().trim()
+        }
+    }
+
+    private fun checkTimeContainsWords(verbTime:String, tvItem:TextView, containsStr:String){
+        if (verbTime.toLowerCase().trim().contains(containsStr)) {
+            tvItem.visibility = View.INVISIBLE
+            tvPhrase.text = tvPhrase.text.toString().plus(tvItem.text.toString())
+        } else {
+            tvItem.setBackgroundResource(R.color.colorAccent)
+            isCurrent = false
         }
     }
 

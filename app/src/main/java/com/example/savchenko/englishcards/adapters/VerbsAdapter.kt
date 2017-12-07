@@ -15,13 +15,11 @@ import com.example.savchenko.englishcards.entities.Verb
 class VerbsAdapter(var context: Context?, var itemList: List<Verb>) : BaseAdapter() {
     override fun getView(p0: Int, p1: View?, p2: ViewGroup?): View {
         val inflater = context?.getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
-        var gridView:View
+        val gridView:View
         if(p1==null){
-            gridView = View(context)
-
             gridView = inflater.inflate(R.layout.item_verb, null)
             val tvVerb = gridView.findViewById<TextView>(R.id.tvVerb)
-            tvVerb.setText(itemList.get(p0).verb)
+            tvVerb.text = itemList.get(p0).verb
         }else{
             gridView = p1
         }
