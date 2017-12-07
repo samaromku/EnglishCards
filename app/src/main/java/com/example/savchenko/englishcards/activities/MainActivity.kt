@@ -15,8 +15,7 @@ import com.example.savchenko.englishcards.entities.Verb
 import com.example.savchenko.englishcards.storage.Const
 import kotlinx.android.synthetic.main.activity_main.*
 import android.widget.FrameLayout
-
-
+import java.util.*
 
 
 class MainActivity : AppCompatActivity() {
@@ -86,7 +85,7 @@ class MainActivity : AppCompatActivity() {
         val words = allWords.toLowerCase().split(" ")
         val llp = FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT)
         llp.setMargins(4, 4, 4, 4)
-
+        Collections.shuffle(words)
         for (i in 0 until words.size){
             val tvItem = TextView(this)
             tvItem.text = words[i].plus(" ")
